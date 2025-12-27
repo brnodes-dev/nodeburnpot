@@ -16,7 +16,8 @@
         .label { color: #888; font-size: 0.9rem; text-transform: uppercase; }
         
         /* Layout */
-        .container { max-width: 550px; margin: 0 auto; border: 2px solid #00ff41; padding: 25px; box-shadow: 0 0 20px rgba(0, 255, 65, 0.1); background-color: #050505; }
+        /* Added position relative to place Disconnect button */
+        .container { max-width: 550px; margin: 0 auto; border: 2px solid #00ff41; padding: 25px; box-shadow: 0 0 20px rgba(0, 255, 65, 0.1); background-color: #050505; position: relative; }
         
         /* Stats Section */
         .stats { margin: 20px 0; padding: 15px; background: #0a0a0a; border: 1px solid #333; border-radius: 4px; }
@@ -42,9 +43,22 @@
         .btn:hover { background-color: #00cc33; box-shadow: 0 0 15px #00ff41; transform: scale(1.02); }
         .btn:disabled { background-color: #333; color: #555; cursor: not-allowed; box-shadow: none; transform: none; }
         
-        /* Disconnect Button (Red) */
-        .btn-disconnect { background-color: transparent; border: 1px solid #ff3333; color: #ff3333; font-size: 0.8rem; padding: 5px 10px; cursor: pointer; margin-top: 10px; display: none; }
-        .btn-disconnect:hover { background-color: #ff3333; color: #000; }
+        /* Disconnect Button (Floating Top Right) */
+        .btn-disconnect { 
+            position: absolute; 
+            top: 15px; 
+            right: 15px; 
+            background: transparent; 
+            border: 1px solid #ff4444; 
+            color: #ff4444; 
+            padding: 5px 8px; 
+            cursor: pointer; 
+            font-family: inherit; 
+            font-size: 0.7rem; 
+            display: none; 
+            z-index: 10;
+        }
+        .btn-disconnect:hover { background: #ff4444; color: #000; }
 
         /* Links & Footer */
         .footer-links { margin-top: 25px; font-size: 0.8rem; display: flex; flex-direction: column; gap: 8px; }
@@ -58,13 +72,10 @@
 <body>
 
     <div class="container">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <div style="text-align: left;">
-                <h1 style="font-size: 1.5rem; margin: 0;">$NODE BURN</h1>
-                <p class="subtitle" style="margin: 0;">ETHEREUM MAINNET</p>
-            </div>
-            <button id="disconnectBtn" class="btn-disconnect" onclick="disconnectWallet()">[ DISCONNECT ]</button>
-        </div>
+        <button id="disconnectBtn" class="btn-disconnect" onclick="disconnectWallet()">[ DISCONNECT ]</button>
+
+        <h1>$NODE BURN POT</h1>
+        <p class="subtitle">ETHEREUM MAINNET</p>
         
         <div class="stats">
             <p><span class="label">Current Pot</span> <br> <span id="potBalance" class="big-number">0.00</span> $NODE</p>
@@ -134,19 +145,20 @@
         ];
 
         let provider, signer, potContract, tokenContract, userAddress;
-        let intervals = []; // To manage refresh intervals
+        let intervals = []; 
 
-        // --- PAGE LOAD LOGIC ---
+        // --- PAGE LOAD: CHECK PERSISTENCE ---
         window.onload = function() {
-            // Check persistence on load
-            if(localStorage.getItem('isConnected') === 'true') {
-                // Auto-connect without signature (silent reconnect)
+            const wasConnected = localStorage.getItem('isConnected');
+            if(wasConnected === 'true') {
+                // Silent connect (no signature needed on reload)
                 initConnect(false);
             }
         };
 
-        // --- CONNECTION LOGIC ---
-        async function initConnect(requiresSignature) {
+        // --- CONNECT LOGIC ---
+        // requireSignature: true for manual click, false for auto-reconnect
+        async function initConnect(requireSignature) {
             if (!window.ethereum) {
                 return alert("No wallet found! Make sure the extension (Rabby/MetaMask) is active.");
             }
@@ -159,39 +171,38 @@
                 signer = provider.getSigner();
                 userAddress = await signer.getAddress();
 
-                // *** SIGNATURE LOGIC ***
-                if (requiresSignature) {
-                    const message = "Welcome to $NODE Burn Pot!\n\nPlease sign this message to confirm you are the owner of this wallet.\n\nTime: " + Date.now();
+                // *** SIGNATURE CHECK ***
+                if (requireSignature) {
+                    const msg = `Login to $NODE Burn Pot\n\nWallet: ${userAddress}\nTimestamp: ${Date.now()}`;
                     try {
                         document.getElementById("status").innerText = "Please sign the message in your wallet...";
-                        await signer.signMessage(message);
+                        await signer.signMessage(msg);
                     } catch (err) {
                         document.getElementById("status").innerText = "Signature rejected. Connection cancelled.";
-                        return; // Stop if signature rejected
+                        return; // Stop here if user rejects signature
                     }
                 }
 
-                // If we get here, connection is successful
-                // Save state
+                // If successful, save state
                 localStorage.setItem('isConnected', 'true');
 
-                // Setup Contracts
+                // Init Contracts
                 potContract = new ethers.Contract(POT_ADDRESS, POT_ABI, signer);
                 tokenContract = new ethers.Contract(TOKEN_ADDRESS, TOKEN_ABI, signer);
 
                 // Update UI
                 document.getElementById("actionBtn").innerText = "CHECKING...";
-                document.getElementById("actionBtn").onclick = null; // Remove connect handler
+                document.getElementById("actionBtn").onclick = null; 
                 document.getElementById("status").innerText = "Connected: " + userAddress.slice(0,6) + "..." + userAddress.slice(-4);
                 
                 // Show Disconnect Button
                 document.getElementById("disconnectBtn").style.display = "block";
 
-                // Start Data Loop
+                // Start Loops
                 await updateStats();
                 checkAllowance();
                 
-                // Clear old intervals and set new ones
+                // Clear any old intervals before starting new ones
                 intervals.forEach(clearInterval);
                 intervals.push(setInterval(updateTimer, 1000));
                 intervals.push(setInterval(updateStats, 5000));
@@ -199,23 +210,21 @@
             } catch (err) {
                 console.error(err);
                 document.getElementById("status").innerText = "Error: " + (err.message || "Connection refused");
-                disconnectWallet(); // Reset if error
+                disconnectWallet(); 
             }
         }
 
         // --- DISCONNECT LOGIC ---
         function disconnectWallet() {
-            // Clear Storage
+            // Clear persistence
             localStorage.removeItem('isConnected');
             
-            // Reset Vars
+            // Clear vars
             provider = null;
             signer = null;
             userAddress = null;
-            potContract = null;
-            tokenContract = null;
             
-            // Stop Loops
+            // Stop loops
             intervals.forEach(clearInterval);
             
             // Reset UI
@@ -228,8 +237,8 @@
             document.getElementById("leaderDisplay").innerText = "---";
             document.getElementById("timer").innerText = "LOADING...";
             
-            // Reload page to ensure clean slate (Optional but cleaner for Web3)
-            location.reload();
+            // Optional: Reload page for a clean slate
+            setTimeout(() => location.reload(), 500);
         }
 
         // --- GAME LOGIC ---
@@ -271,7 +280,6 @@
                 if (diff <= 0) {
                     document.getElementById("timer").innerText = "ROUND ENDED";
                     document.getElementById("timer").style.color = "#555";
-                    // If round ended, text changes to prompt new round
                     if(document.getElementById("actionBtn").innerText.includes("BUY")) {
                         document.getElementById("actionBtn").innerText = "START NEW ROUND (100 $NODE)";
                     }
