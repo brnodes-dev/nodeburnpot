@@ -6,7 +6,7 @@
     <title>$NODE Burn Pot (BSC)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <style>
-        /* Reverted to Original Green Theme */
+        /* THEME: Original Neon Green */
         body { font-family: 'Courier New', Courier, monospace; background-color: #0d0d0d; color: #00ff41; text-align: center; padding: 20px; }
         h1 { font-size: 2.5rem; text-shadow: 0 0 10px #00ff41; margin-bottom: 5px; letter-spacing: -2px; }
         h2 { font-size: 1.2rem; border-bottom: 1px dashed #00ff41; padding-bottom: 10px; margin-bottom: 20px; margin-top: 30px; }
@@ -16,7 +16,7 @@
         .container { max-width: 550px; margin: 0 auto; border: 2px solid #00ff41; padding: 25px; box-shadow: 0 0 20px rgba(0, 255, 65, 0.1); background-color: #050505; position: relative; }
         .stats { margin: 20px 0; padding: 15px; background: #0a0a0a; border: 1px solid #333; border-radius: 4px; }
         
-        /* Green Highlight */
+        /* Highlight for the prize number */
         .big-number { color: #00ff41; font-size: 2.2rem; font-weight: bold; text-shadow: 0 0 15px rgba(0, 255, 65, 0.4); }
         
         .leader-text { font-size: 1.1rem; font-weight: bold; word-break: break-all; }
@@ -30,11 +30,12 @@
         .rules-box li { margin-bottom: 8px; }
         .rules-box strong { color: #00ff41; }
         
-        /* Green Buttons */
+        /* Buttons */
         .btn { background-color: #00ff41; color: #000; font-size: 1.4rem; padding: 15px; border: none; cursor: pointer; font-weight: bold; width: 100%; text-transform: uppercase; transition: 0.2s; }
         .btn:hover { background-color: #00cc33; box-shadow: 0 0 15px #00ff41; transform: scale(1.02); }
         .btn:disabled { background-color: #333; color: #555; cursor: not-allowed; box-shadow: none; transform: none; }
         
+        /* Disconnect Button */
         .btn-disconnect { position: absolute; top: 15px; right: 15px; background: transparent; border: 1px solid #ff4444; color: #ff4444; padding: 5px 8px; cursor: pointer; font-family: inherit; font-size: 0.7rem; display: none; z-index: 10; }
         .btn-disconnect:hover { background: #ff4444; color: #000; }
         
@@ -69,31 +70,33 @@
                 <li>Buy a ticket (100 $NODE) to become the <strong>LEADER</strong>.</li>
                 <li>Every purchase adds <strong>1 MINUTE</strong> to the clock (Anti-Bot).</li>
                 <li>If the timer hits <strong>ZERO</strong>, the Leader takes the <strong>PRIZE (40%)</strong>!</li>
-                <li>40% is <strong>BURNED</strong> forever (Sent to 0x...dEaD).</li>
+                <li>40% is <strong>BURNED INSTANTLY</strong> on every buy.</li>
             </ul>
         </div>
 
         <h2>POT DISTRIBUTION</h2>
         <div class="distribution">
-            <div class="dist-item"><strong>40%</strong> WINNER <br> <span style="color:#00ff41; font-weight:bold;">(Displayed Above)</span></div>
-            <div class="dist-item highlight-burn"><strong>40%</strong> BURN <br> <span style="color:#ff5555">(Deflation)</span></div>
+            <div class="dist-item"><strong>40%</strong> WINNER <br> <span style="color:#00ff41; font-weight:bold;">(Accumulating)</span></div>
+            <div class="dist-item highlight-burn"><strong>40%</strong> BURN <br> <span style="color:#ff5555">(Instant)</span></div>
             <div class="dist-item"><strong>10%</strong> NEXT POT <br> <span style="color:#666">(Seed)</span></div>
-            <div class="dist-item"><strong>10%</strong> DEV <br> <span style="color:#666">(Maintenance)</span></div>
+            <div class="dist-item"><strong>10%</strong> DEV <br> <span style="color:#666">(Instant)</span></div>
         </div>
 
         <div class="footer-links">
             <a href="https://bscscan.com/address/0x000000000000000000000000000000000000dEaD#tokentxns" target="_blank">🔥 VERIFY BURNS (Official dEaD Address)</a>
-            <a href="https://bscscan.com/address/0xEef424cEAa907f86d43E774b465A1F6134F89F6c" target="_blank">📄 VIEW GAME CONTRACT</a>
+            <a href="#" id="contractLink" target="_blank">📄 VIEW GAME CONTRACT</a>
         </div>
     </div>
 
     <script>
-        // --- BSC CONFIGURATION ---
-        const POT_ADDRESS = "0xEef424cEAa907f86d43E774b465A1F6134F89F6c"; 
-        const TOKEN_ADDRESS = "0x2F714d7b9A035d4ce24af8d9b6091c07E37f43Fb"; 
+        // --- UPDATED CONTRACT ADDRESS ---
+        const POT_ADDRESS = "0xBAAc56797e6fE0d2E044503AC04Ddc41AB6b849B"; 
+        
+        // --- BSC SETTINGS ---
+        const TOKEN_ADDRESS = "0x2F714d7b9A035d4ce24af8d9b6091c07E37f43Fb"; // $NODE on BSC
         const TICKET_PRICE = ethers.utils.parseEther("100"); 
         
-        // BSC Public RPC
+        // Public BSC RPC
         const READ_ONLY_RPC = "https://bsc-dataseed.binance.org/";
 
         const POT_ABI = [
@@ -112,6 +115,10 @@
         let readOnlyContract;
         let intervals = []; 
 
+        // Update footer link with new address
+        document.getElementById("contractLink").href = "https://bscscan.com/address/" + POT_ADDRESS;
+
+        // Start App
         initReadOnly();
 
         window.onload = function() {
@@ -138,7 +145,7 @@
                 provider = new ethers.providers.Web3Provider(window.ethereum);
                 await provider.send("eth_requestAccounts", []);
                 
-                // Switch/Add BSC Chain
+                // Force BSC Chain (ID 56)
                 try {
                     await window.ethereum.request({
                         method: 'wallet_switchEthereumChain',
@@ -214,12 +221,13 @@
         async function updateData(contractToUse) {
             if (!contractToUse) return;
             try {
-                // Net Pot Balance
+                // 1. Get Funds held in contract (Prize + Seed)
                 const balanceBN = await contractToUse.getPotBalance();
-                const netPot = parseFloat(ethers.utils.formatEther(balanceBN));
+                const storedPot = parseFloat(ethers.utils.formatEther(balanceBN));
                 
-                // Winner's Share (40/90)
-                const winnerPrize = (netPot * 40) / 90;
+                // 2. Calculate Winner's Share (40/50 of the stored funds)
+                // Math: storedPot * 0.8
+                const winnerPrize = storedPot * 0.8;
 
                 document.getElementById("potBalance").innerText = winnerPrize.toFixed(0);
 
@@ -233,7 +241,7 @@
                     leaderEl.style.textShadow = "none";
                 } else if (userAddress && leader.toLowerCase() === userAddress.toLowerCase()) {
                     leaderEl.innerText = "YOU (KING)";
-                    leaderEl.style.color = "#00ff41"; // Reverted to Green
+                    leaderEl.style.color = "#00ff41"; // Green
                     leaderEl.style.textShadow = "0 0 10px #00ff41";
                 } else {
                     leaderEl.innerText = leader.slice(0,6) + "..." + leader.slice(-4);
