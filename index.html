@@ -6,36 +6,81 @@
     <title>$NODE Burn Pot</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <style>
-        body { font-family: 'Courier New', Courier, monospace; background-color: #0d0d0d; color: #00ff41; text-align: center; padding: 50px; }
-        h1 { font-size: 3rem; text-shadow: 0 0 10px #00ff41; margin-bottom: 10px; }
+        body { font-family: 'Courier New', Courier, monospace; background-color: #0d0d0d; color: #00ff41; text-align: center; padding: 20px; }
+        
+        /* Typography */
+        h1 { font-size: 2.5rem; text-shadow: 0 0 10px #00ff41; margin-bottom: 5px; letter-spacing: -2px; }
+        h2 { font-size: 1.2rem; border-bottom: 1px dashed #00ff41; padding-bottom: 10px; margin-bottom: 20px; }
         p { margin: 5px 0; }
-        .container { max-width: 600px; margin: 0 auto; border: 2px solid #00ff41; padding: 30px; box-shadow: 0 0 20px rgba(0, 255, 65, 0.2); background-color: #000; }
-        .btn { background-color: #00ff41; color: #000; font-size: 1.5rem; padding: 15px 30px; border: none; cursor: pointer; font-weight: bold; margin-top: 25px; width: 100%; transition: 0.3s; }
-        .btn:hover { background-color: #00cc33; box-shadow: 0 0 15px #00ff41; }
-        .btn:disabled { background-color: #333; color: #555; cursor: not-allowed; box-shadow: none; }
-        .stats { font-size: 1.3rem; margin: 20px 0; border-bottom: 1px solid #333; padding-bottom: 20px; }
-        .status-box { background: #1a1a1a; padding: 10px; margin-top: 20px; border-radius: 5px; font-size: 0.9rem; color: #888; }
-        #timer { font-size: 2.2rem; color: #ff0000; font-weight: bold; display: block; margin-top: 10px; }
-        .label { color: #888; font-size: 1rem; }
+        .subtitle { color: #666; font-size: 0.8rem; letter-spacing: 2px; margin-bottom: 20px; }
+        .label { color: #888; font-size: 0.9rem; text-transform: uppercase; }
+        
+        /* Layout */
+        .container { max-width: 550px; margin: 0 auto; border: 2px solid #00ff41; padding: 25px; box-shadow: 0 0 20px rgba(0, 255, 65, 0.1); background-color: #050505; }
+        
+        /* Stats Section */
+        .stats { margin: 20px 0; padding: 15px; background: #0a0a0a; border: 1px solid #333; border-radius: 4px; }
+        .big-number { color: #fff; font-size: 1.8rem; font-weight: bold; text-shadow: 0 0 5px rgba(255,255,255,0.5); }
+        #timer { font-size: 2rem; color: #ff0000; font-weight: bold; display: block; margin-top: 5px; text-shadow: 0 0 5px rgba(255, 0, 0, 0.4); }
+        
+        /* Distribution Grid */
+        .distribution { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: left; margin-bottom: 25px; font-size: 0.85rem; }
+        .dist-item { padding: 8px; border-left: 2px solid #333; }
+        .dist-item strong { color: #fff; }
+        .highlight-burn { border-left: 2px solid #ff0000; color: #ff9999; }
+        
+        /* Buttons */
+        .btn { background-color: #00ff41; color: #000; font-size: 1.4rem; padding: 15px; border: none; cursor: pointer; font-weight: bold; width: 100%; text-transform: uppercase; transition: 0.2s; }
+        .btn:hover { background-color: #00cc33; box-shadow: 0 0 15px #00ff41; transform: scale(1.02); }
+        .btn:disabled { background-color: #333; color: #555; cursor: not-allowed; box-shadow: none; transform: none; }
+        
+        /* Links & Footer */
+        .footer-links { margin-top: 25px; font-size: 0.8rem; display: flex; flex-direction: column; gap: 8px; }
+        .footer-links a { color: #555; text-decoration: none; transition: 0.3s; border: 1px solid #222; padding: 8px; display: block; }
+        .footer-links a:hover { color: #00ff41; border-color: #00ff41; background: #0a0a0a; }
+        
+        /* Status Text */
+        #status { font-size: 0.8rem; color: #888; margin-top: 15px; font-style: italic; min-height: 20px; }
     </style>
 </head>
 <body>
 
     <div class="container">
         <h1>$NODE BURN POT</h1>
-        <p style="color: #666; font-size: 0.9rem; letter-spacing: 2px;">ETHEREUM MAINNET</p>
+        <p class="subtitle">ETHEREUM MAINNET</p>
         
         <div class="stats">
-            <p><span class="label">CURRENT POT:</span> <br> <span id="potBalance" style="color: #fff; font-size: 1.5rem;">0.00</span> $NODE</p>
+            <p><span class="label">Current Pot</span> <br> <span id="potBalance" class="big-number">0.00</span> $NODE</p>
             <br>
-            <p><span class="label">TIME REMAINING:</span> <span id="timer">LOADING...</span></p>
+            <p><span class="label">Time Remaining</span> <span id="timer">LOADING...</span></p>
+        </div>
+
+        <h2>POT DISTRIBUTION</h2>
+        <div class="distribution">
+            <div class="dist-item">
+                <strong>40%</strong> WINNER <br> <span style="color:#666">(Last Buyer)</span>
+            </div>
+            <div class="dist-item highlight-burn">
+                <strong>40%</strong> BURN <br> <span style="color:#ff5555">(Deflation)</span>
+            </div>
+            <div class="dist-item">
+                <strong>10%</strong> NEXT POT <br> <span style="color:#666">(Seed)</span>
+            </div>
+            <div class="dist-item">
+                <strong>10%</strong> DEV <br> <span style="color:#666">(Maintenance)</span>
+            </div>
         </div>
 
         <button id="actionBtn" class="btn" onclick="connectWallet()">CONNECT WALLET</button>
+        <p id="status">Waiting for connection...</p>
 
-        <div class="status-box">
-            <p id="status">Waiting for connection...</p>
-            <a href="https://etherscan.io/address/0xb883a49177a29dB0921109887B3EF65f10f733Ac" target="_blank" style="color: #00ff41; text-decoration: none; display: block; margin-top: 5px;">[View Contract on Etherscan]</a>
+        <div class="footer-links">
+            <a href="https://etherscan.io/address/0x2080Fee444118AFCe30fCb749802C18c0a980dB7#tokentxns" target="_blank">
+                🔥 VERIFY BURNS (Official Contract)
+            </a>
+            <a href="https://etherscan.io/address/0xb883a49177a29dB0921109887B3EF65f10f733Ac" target="_blank">
+                📄 VIEW GAME CONTRACT
+            </a>
         </div>
     </div>
 
@@ -60,30 +105,25 @@
         let provider, signer, potContract, tokenContract, userAddress;
 
         async function connectWallet() {
-            // Generic check for injected wallet (Rabby, MetaMask, Frame, etc.)
             if (!window.ethereum) {
-                return alert("No wallet found! Make sure the extension (Rabby/MetaMask) is active and you are running on a local server (http://localhost), not opening the file directly.");
+                return alert("No wallet found! Make sure the extension (Rabby/MetaMask) is active.");
             }
             
             try {
-                // Force Web3 provider connection
                 provider = new ethers.providers.Web3Provider(window.ethereum);
-                
-                // Request account access
                 await provider.send("eth_requestAccounts", []);
-                
                 signer = provider.getSigner();
                 userAddress = await signer.getAddress();
 
                 potContract = new ethers.Contract(POT_ADDRESS, POT_ABI, signer);
                 tokenContract = new ethers.Contract(TOKEN_ADDRESS, TOKEN_ABI, signer);
 
-                document.getElementById("actionBtn").innerText = "CHECKING ALLOWANCE...";
+                document.getElementById("actionBtn").innerText = "CHECKING...";
                 document.getElementById("actionBtn").onclick = null; 
                 
+                // Show condensed address
                 document.getElementById("status").innerText = "Connected: " + userAddress.slice(0,6) + "..." + userAddress.slice(-4);
                 
-                // Start updates
                 updateStats();
                 checkAllowance();
                 setInterval(updateTimer, 1000);
@@ -97,7 +137,9 @@
         async function updateStats() {
             try {
                 const balanceBN = await potContract.getPotBalance();
-                document.getElementById("potBalance").innerText = ethers.utils.formatEther(balanceBN);
+                // Format with 0 decimals for cleaner look
+                const balanceFormatted = parseFloat(ethers.utils.formatEther(balanceBN)).toFixed(0);
+                document.getElementById("potBalance").innerText = balanceFormatted;
             } catch (err) { console.error("Error updating stats:", err); }
         }
 
@@ -111,11 +153,20 @@
                 if (diff <= 0) {
                     document.getElementById("timer").innerText = "ROUND ENDED";
                     document.getElementById("timer").style.color = "#555";
+                    // If round ended, text changes to prompt new round
+                    if(document.getElementById("actionBtn").innerText.includes("BUY")) {
+                        document.getElementById("actionBtn").innerText = "START NEW ROUND (100 $NODE)";
+                    }
                 } else {
                     const h = Math.floor(diff / 3600);
                     const m = Math.floor((diff % 3600) / 60);
                     const s = diff % 60;
-                    document.getElementById("timer").innerText = `${h}h ${m}m ${s}s`;
+                    // Add leading zeros
+                    const hDisplay = h < 10 ? "0" + h : h;
+                    const mDisplay = m < 10 ? "0" + m : m;
+                    const sDisplay = s < 10 ? "0" + s : s;
+                    
+                    document.getElementById("timer").innerText = `${hDisplay}:${mDisplay}:${sDisplay}`;
                     document.getElementById("timer").style.color = "#ff0000";
                 }
             } catch (err) { console.error("Timer error:", err); }
@@ -124,7 +175,6 @@
         async function checkAllowance() {
             try {
                 const allowance = await tokenContract.allowance(userAddress, POT_ADDRESS);
-                // Check if allowance covers at least 1 ticket
                 if (allowance.gte(TICKET_PRICE)) {
                     setButtonState("BUY TICKET (100 $NODE)", buyTicket);
                 } else {
@@ -145,33 +195,31 @@
 
         async function approveToken() {
             try {
-                document.getElementById("status").innerText = "Waiting for wallet confirmation...";
-                // Approve max to avoid repeated requests
+                document.getElementById("status").innerText = "Please confirm approval in wallet...";
                 const tx = await tokenContract.approve(POT_ADDRESS, ethers.constants.MaxUint256);
-                document.getElementById("status").innerText = "Tx Sent... Waiting for mining.";
+                document.getElementById("status").innerText = "Approving... waiting for network.";
                 await tx.wait();
-                document.getElementById("status").innerText = "Approved! Updating button...";
+                document.getElementById("status").innerText = "Approved!";
                 checkAllowance(); 
             } catch (err) {
-                document.getElementById("status").innerText = "Approval Failed or Cancelled";
-                console.error(err);
+                document.getElementById("status").innerText = "Approval Cancelled";
             }
         }
 
         async function buyTicket() {
             try {
-                document.getElementById("status").innerText = "Confirm purchase in wallet...";
+                document.getElementById("status").innerText = "Please confirm transaction...";
                 const tx = await potContract.buyTicket();
-                document.getElementById("status").innerText = "Tx Sent! Waiting for confirmation...";
+                document.getElementById("status").innerText = "Transaction sent! Waiting confirmation...";
                 await tx.wait();
-                document.getElementById("status").innerText = "SUCCESS! You are the new leader!";
+                document.getElementById("status").innerText = "TICKET BOUGHT! You are the leader!";
                 updateStats();
+                // Force timer update immediately
+                updateTimer();
             } catch (err) {
-                // Parse readable error message
                 let msg = err.reason || err.message;
-                if(msg.includes("Transfer failed")) msg = "Insufficient balance or allowance!";
+                if(msg.includes("Transfer failed")) msg = "Insufficient balance!";
                 document.getElementById("status").innerText = "Error: " + msg;
-                console.error(err);
             }
         }
     </script>
