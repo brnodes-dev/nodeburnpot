@@ -6,17 +6,18 @@
     <title>$NODE Burn Pot (BSC)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <style>
-        body { font-family: 'Courier New', Courier, monospace; background-color: #0d0d0d; color: #f3ba2f; text-align: center; padding: 20px; } /* Changed color to BSC Gold */
-        h1 { font-size: 2.5rem; text-shadow: 0 0 10px #f3ba2f; margin-bottom: 5px; letter-spacing: -2px; }
-        h2 { font-size: 1.2rem; border-bottom: 1px dashed #f3ba2f; padding-bottom: 10px; margin-bottom: 20px; margin-top: 30px; }
+        /* Reverted to Original Green Theme */
+        body { font-family: 'Courier New', Courier, monospace; background-color: #0d0d0d; color: #00ff41; text-align: center; padding: 20px; }
+        h1 { font-size: 2.5rem; text-shadow: 0 0 10px #00ff41; margin-bottom: 5px; letter-spacing: -2px; }
+        h2 { font-size: 1.2rem; border-bottom: 1px dashed #00ff41; padding-bottom: 10px; margin-bottom: 20px; margin-top: 30px; }
         p { margin: 5px 0; }
         .subtitle { color: #666; font-size: 0.8rem; letter-spacing: 2px; margin-bottom: 20px; }
         .label { color: #888; font-size: 0.9rem; text-transform: uppercase; }
-        .container { max-width: 550px; margin: 0 auto; border: 2px solid #f3ba2f; padding: 25px; box-shadow: 0 0 20px rgba(243, 186, 47, 0.1); background-color: #050505; position: relative; }
+        .container { max-width: 550px; margin: 0 auto; border: 2px solid #00ff41; padding: 25px; box-shadow: 0 0 20px rgba(0, 255, 65, 0.1); background-color: #050505; position: relative; }
         .stats { margin: 20px 0; padding: 15px; background: #0a0a0a; border: 1px solid #333; border-radius: 4px; }
         
-        /* Highlight for the prize number */
-        .big-number { color: #f3ba2f; font-size: 2.2rem; font-weight: bold; text-shadow: 0 0 15px rgba(243, 186, 47, 0.4); }
+        /* Green Highlight */
+        .big-number { color: #00ff41; font-size: 2.2rem; font-weight: bold; text-shadow: 0 0 15px rgba(0, 255, 65, 0.4); }
         
         .leader-text { font-size: 1.1rem; font-weight: bold; word-break: break-all; }
         #timer { font-size: 2rem; color: #ff0000; font-weight: bold; display: block; margin-top: 5px; text-shadow: 0 0 5px rgba(255, 0, 0, 0.4); }
@@ -27,15 +28,19 @@
         .rules-box { text-align: left; background: #111; padding: 15px; border: 1px solid #333; margin-top: 25px; font-size: 0.9rem; color: #ccc; }
         .rules-box ul { padding-left: 20px; margin: 0; }
         .rules-box li { margin-bottom: 8px; }
-        .rules-box strong { color: #f3ba2f; }
-        .btn { background-color: #f3ba2f; color: #000; font-size: 1.4rem; padding: 15px; border: none; cursor: pointer; font-weight: bold; width: 100%; text-transform: uppercase; transition: 0.2s; }
-        .btn:hover { background-color: #d4a017; box-shadow: 0 0 15px #f3ba2f; transform: scale(1.02); }
+        .rules-box strong { color: #00ff41; }
+        
+        /* Green Buttons */
+        .btn { background-color: #00ff41; color: #000; font-size: 1.4rem; padding: 15px; border: none; cursor: pointer; font-weight: bold; width: 100%; text-transform: uppercase; transition: 0.2s; }
+        .btn:hover { background-color: #00cc33; box-shadow: 0 0 15px #00ff41; transform: scale(1.02); }
         .btn:disabled { background-color: #333; color: #555; cursor: not-allowed; box-shadow: none; transform: none; }
+        
         .btn-disconnect { position: absolute; top: 15px; right: 15px; background: transparent; border: 1px solid #ff4444; color: #ff4444; padding: 5px 8px; cursor: pointer; font-family: inherit; font-size: 0.7rem; display: none; z-index: 10; }
         .btn-disconnect:hover { background: #ff4444; color: #000; }
+        
         .footer-links { margin-top: 25px; font-size: 0.8rem; display: flex; flex-direction: column; gap: 8px; }
         .footer-links a { color: #555; text-decoration: none; transition: 0.3s; border: 1px solid #222; padding: 8px; display: block; }
-        .footer-links a:hover { color: #f3ba2f; border-color: #f3ba2f; background: #0a0a0a; }
+        .footer-links a:hover { color: #00ff41; border-color: #00ff41; background: #0a0a0a; }
         #status { font-size: 0.8rem; color: #888; margin-top: 15px; font-style: italic; min-height: 20px; }
     </style>
 </head>
@@ -70,7 +75,7 @@
 
         <h2>POT DISTRIBUTION</h2>
         <div class="distribution">
-            <div class="dist-item"><strong>40%</strong> WINNER <br> <span style="color:#f3ba2f; font-weight:bold;">(Displayed Above)</span></div>
+            <div class="dist-item"><strong>40%</strong> WINNER <br> <span style="color:#00ff41; font-weight:bold;">(Displayed Above)</span></div>
             <div class="dist-item highlight-burn"><strong>40%</strong> BURN <br> <span style="color:#ff5555">(Deflation)</span></div>
             <div class="dist-item"><strong>10%</strong> NEXT POT <br> <span style="color:#666">(Seed)</span></div>
             <div class="dist-item"><strong>10%</strong> DEV <br> <span style="color:#666">(Maintenance)</span></div>
@@ -85,10 +90,10 @@
     <script>
         // --- BSC CONFIGURATION ---
         const POT_ADDRESS = "0xEef424cEAa907f86d43E774b465A1F6134F89F6c"; 
-        const TOKEN_ADDRESS = "0x2F714d7b9A035d4ce24af8d9b6091c07E37f43Fb"; // $NODE on BSC
+        const TOKEN_ADDRESS = "0x2F714d7b9A035d4ce24af8d9b6091c07E37f43Fb"; 
         const TICKET_PRICE = ethers.utils.parseEther("100"); 
         
-        // BSC Public RPC (Binance Official)
+        // BSC Public RPC
         const READ_ONLY_RPC = "https://bsc-dataseed.binance.org/";
 
         const POT_ABI = [
@@ -107,7 +112,6 @@
         let readOnlyContract;
         let intervals = []; 
 
-        // Start Fetching immediately
         initReadOnly();
 
         window.onload = function() {
@@ -134,14 +138,13 @@
                 provider = new ethers.providers.Web3Provider(window.ethereum);
                 await provider.send("eth_requestAccounts", []);
                 
-                // Optional: Force switch to BSC Chain ID (56)
+                // Switch/Add BSC Chain
                 try {
                     await window.ethereum.request({
                         method: 'wallet_switchEthereumChain',
-                        params: [{ chainId: '0x38' }], // Hex for 56
+                        params: [{ chainId: '0x38' }],
                     });
                 } catch (switchError) {
-                    // This error code indicates that the chain has not been added to MetaMask.
                     if (switchError.code === 4902) {
                         try {
                             await window.ethereum.request({
@@ -211,14 +214,13 @@
         async function updateData(contractToUse) {
             if (!contractToUse) return;
             try {
-                // 1. Get Net Pot Balance
+                // Net Pot Balance
                 const balanceBN = await contractToUse.getPotBalance();
                 const netPot = parseFloat(ethers.utils.formatEther(balanceBN));
                 
-                // 2. Calculate Winner's Share (40/90 of the Net Pot)
+                // Winner's Share (40/90)
                 const winnerPrize = (netPot * 40) / 90;
 
-                // 3. Display Result
                 document.getElementById("potBalance").innerText = winnerPrize.toFixed(0);
 
                 // Update Leader
@@ -231,8 +233,8 @@
                     leaderEl.style.textShadow = "none";
                 } else if (userAddress && leader.toLowerCase() === userAddress.toLowerCase()) {
                     leaderEl.innerText = "YOU (KING)";
-                    leaderEl.style.color = "#f3ba2f"; // Gold
-                    leaderEl.style.textShadow = "0 0 10px #f3ba2f";
+                    leaderEl.style.color = "#00ff41"; // Reverted to Green
+                    leaderEl.style.textShadow = "0 0 10px #00ff41";
                 } else {
                     leaderEl.innerText = leader.slice(0,6) + "..." + leader.slice(-4);
                     leaderEl.style.color = "#fff";
