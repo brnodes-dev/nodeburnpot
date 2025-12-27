@@ -45,11 +45,11 @@
         <p class="subtitle">ETHEREUM MAINNET</p>
         
         <div class="stats">
-            <p><span class="label">Current Pot</span> <br> <span id="potBalance" class="big-number">LOADING...</span> $NODE</p>
+            <p><span class="label">Current Pot</span> <br> <span id="potBalance" class="big-number">...</span> $NODE</p>
             <br>
-            <p><span class="label">Current Leader (Winner)</span> <br> <span id="leaderDisplay" class="leader-text" style="color: #555;">---</span></p>
+            <p><span class="label">Current Leader (Winner)</span> <br> <span id="leaderDisplay" class="leader-text" style="color: #555;">...</span></p>
             <br>
-            <p><span class="label">Time Remaining</span> <span id="timer">LOADING...</span></p>
+            <p><span class="label">Time Remaining</span> <span id="timer">...</span></p>
         </div>
 
         <button id="actionBtn" class="btn" onclick="initConnect(true)">CONNECT WALLET</button>
@@ -83,8 +83,9 @@
         const POT_ADDRESS = "0xb883a49177a29dB0921109887B3EF65f10f733Ac"; 
         const TOKEN_ADDRESS = "0x2F714d7b9A035d4ce24af8d9b6091c07E37f43Fb"; 
         const TICKET_PRICE = ethers.utils.parseEther("100"); 
-        // Using a public RPC for read-only access (LlamaRPC is free and stable)
-        const READ_ONLY_RPC = "https://eth.llamarpc.com";
+        
+        // --- CHANGED TO CLOUDFLARE (FASTEST PUBLIC RPC) ---
+        const READ_ONLY_RPC = "https://cloudflare-eth.com";
 
         const POT_ABI = [
             "function buyTicket() external",
@@ -99,14 +100,15 @@
         ];
 
         let provider, signer, potContract, tokenContract, userAddress;
-        let readOnlyContract; // Separate contract instance for visitors
+        let readOnlyContract;
         let intervals = []; 
 
-        window.onload = function() {
-            // 1. Start Read-Only Mode immediately
-            initReadOnly();
+        // --- INIT LOGIC (Runs immediately) ---
+        // 1. Start fetching data right now (don't wait for page load)
+        initReadOnly();
 
-            // 2. Check if user was connected previously
+        window.onload = function() {
+            // 2. Check login status
             if(localStorage.getItem('isConnected') === 'true') {
                 initConnect(false);
             }
@@ -114,14 +116,14 @@
 
         async function initReadOnly() {
             try {
-                // Create a provider that doesn't need a wallet
+                // Connect to Cloudflare
                 const roProvider = new ethers.providers.JsonRpcProvider(READ_ONLY_RPC);
                 readOnlyContract = new ethers.Contract(POT_ADDRESS, POT_ABI, roProvider);
                 
-                // Fetch data immediately
+                // Fetch first batch
                 await updateData(readOnlyContract);
                 
-                // Start a loop to keep data fresh for visitors
+                // Loop
                 setInterval(() => updateData(readOnlyContract), 5000);
                 setInterval(() => updateTimerInternal(readOnlyContract), 1000);
             } catch (err) {
@@ -160,7 +162,7 @@
                 document.getElementById("status").innerText = "Connected: " + userAddress.slice(0,6) + "...";
                 document.getElementById("disconnectBtn").style.display = "block";
 
-                // Refresh data with the connected signer (allows checking "YOU" status)
+                // Refresh data with signer context
                 await updateData(potContract);
                 checkAllowance();
                 
@@ -186,12 +188,12 @@
             document.getElementById("actionBtn").onclick = function() { initConnect(true); };
             document.getElementById("actionBtn").disabled = false;
             document.getElementById("status").innerText = "Disconnected.";
+            document.getElementById("leaderDisplay").innerText = "---";
             
-            // Revert to Read-Only mode instead of reloading
+            // Re-init read only
             initReadOnly();
         }
 
-        // --- UNIFIED DATA UPDATE FUNCTION ---
         async function updateData(contractToUse) {
             if (!contractToUse) return;
             try {
@@ -229,7 +231,6 @@
                 if (diff <= 0) {
                     document.getElementById("timer").innerText = "ROUND ENDED";
                     document.getElementById("timer").style.color = "#555";
-                    // Only change button text if wallet is connected
                     if(document.getElementById("actionBtn").innerText.includes("BUY")) {
                         document.getElementById("actionBtn").innerText = "START NEW ROUND (100 $NODE)";
                     }
