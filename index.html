@@ -31,7 +31,7 @@
         .dist-item strong { color: #fff; }
         .highlight-burn { border-left: 2px solid #ff0000; color: #ff9999; }
         
-        /* Rules Section (NEW) */
+        /* Rules Section */
         .rules-box { text-align: left; background: #111; padding: 15px; border: 1px solid #333; margin-top: 25px; font-size: 0.9rem; color: #ccc; }
         .rules-box ul { padding-left: 20px; margin: 0; }
         .rules-box li { margin-bottom: 8px; }
@@ -42,6 +42,10 @@
         .btn:hover { background-color: #00cc33; box-shadow: 0 0 15px #00ff41; transform: scale(1.02); }
         .btn:disabled { background-color: #333; color: #555; cursor: not-allowed; box-shadow: none; transform: none; }
         
+        /* Disconnect Button (Red) */
+        .btn-disconnect { background-color: transparent; border: 1px solid #ff3333; color: #ff3333; font-size: 0.8rem; padding: 5px 10px; cursor: pointer; margin-top: 10px; display: none; }
+        .btn-disconnect:hover { background-color: #ff3333; color: #000; }
+
         /* Links & Footer */
         .footer-links { margin-top: 25px; font-size: 0.8rem; display: flex; flex-direction: column; gap: 8px; }
         .footer-links a { color: #555; text-decoration: none; transition: 0.3s; border: 1px solid #222; padding: 8px; display: block; }
@@ -54,8 +58,13 @@
 <body>
 
     <div class="container">
-        <h1>$NODE BURN POT</h1>
-        <p class="subtitle">ETHEREUM MAINNET</p>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div style="text-align: left;">
+                <h1 style="font-size: 1.5rem; margin: 0;">$NODE BURN</h1>
+                <p class="subtitle" style="margin: 0;">ETHEREUM MAINNET</p>
+            </div>
+            <button id="disconnectBtn" class="btn-disconnect" onclick="disconnectWallet()">[ DISCONNECT ]</button>
+        </div>
         
         <div class="stats">
             <p><span class="label">Current Pot</span> <br> <span id="potBalance" class="big-number">0.00</span> $NODE</p>
@@ -67,7 +76,7 @@
             <p><span class="label">Time Remaining</span> <span id="timer">LOADING...</span></p>
         </div>
 
-        <button id="actionBtn" class="btn" onclick="connectWallet()">CONNECT WALLET</button>
+        <button id="actionBtn" class="btn" onclick="initConnect(true)">CONNECT WALLET</button>
         <p id="status">Waiting for connection...</p>
 
         <div class="rules-box">
@@ -125,46 +134,114 @@
         ];
 
         let provider, signer, potContract, tokenContract, userAddress;
+        let intervals = []; // To manage refresh intervals
 
-        async function connectWallet() {
+        // --- PAGE LOAD LOGIC ---
+        window.onload = function() {
+            // Check persistence on load
+            if(localStorage.getItem('isConnected') === 'true') {
+                // Auto-connect without signature (silent reconnect)
+                initConnect(false);
+            }
+        };
+
+        // --- CONNECTION LOGIC ---
+        async function initConnect(requiresSignature) {
             if (!window.ethereum) {
                 return alert("No wallet found! Make sure the extension (Rabby/MetaMask) is active.");
             }
             
             try {
                 provider = new ethers.providers.Web3Provider(window.ethereum);
+                
+                // Request Accounts
                 await provider.send("eth_requestAccounts", []);
                 signer = provider.getSigner();
                 userAddress = await signer.getAddress();
 
+                // *** SIGNATURE LOGIC ***
+                if (requiresSignature) {
+                    const message = "Welcome to $NODE Burn Pot!\n\nPlease sign this message to confirm you are the owner of this wallet.\n\nTime: " + Date.now();
+                    try {
+                        document.getElementById("status").innerText = "Please sign the message in your wallet...";
+                        await signer.signMessage(message);
+                    } catch (err) {
+                        document.getElementById("status").innerText = "Signature rejected. Connection cancelled.";
+                        return; // Stop if signature rejected
+                    }
+                }
+
+                // If we get here, connection is successful
+                // Save state
+                localStorage.setItem('isConnected', 'true');
+
+                // Setup Contracts
                 potContract = new ethers.Contract(POT_ADDRESS, POT_ABI, signer);
                 tokenContract = new ethers.Contract(TOKEN_ADDRESS, TOKEN_ABI, signer);
 
+                // Update UI
                 document.getElementById("actionBtn").innerText = "CHECKING...";
-                document.getElementById("actionBtn").onclick = null; 
-                
+                document.getElementById("actionBtn").onclick = null; // Remove connect handler
                 document.getElementById("status").innerText = "Connected: " + userAddress.slice(0,6) + "..." + userAddress.slice(-4);
                 
+                // Show Disconnect Button
+                document.getElementById("disconnectBtn").style.display = "block";
+
+                // Start Data Loop
                 await updateStats();
                 checkAllowance();
-                setInterval(updateTimer, 1000);
-                setInterval(updateStats, 5000);
+                
+                // Clear old intervals and set new ones
+                intervals.forEach(clearInterval);
+                intervals.push(setInterval(updateTimer, 1000));
+                intervals.push(setInterval(updateStats, 5000));
 
             } catch (err) {
                 console.error(err);
                 document.getElementById("status").innerText = "Error: " + (err.message || "Connection refused");
+                disconnectWallet(); // Reset if error
             }
         }
 
+        // --- DISCONNECT LOGIC ---
+        function disconnectWallet() {
+            // Clear Storage
+            localStorage.removeItem('isConnected');
+            
+            // Reset Vars
+            provider = null;
+            signer = null;
+            userAddress = null;
+            potContract = null;
+            tokenContract = null;
+            
+            // Stop Loops
+            intervals.forEach(clearInterval);
+            
+            // Reset UI
+            document.getElementById("disconnectBtn").style.display = "none";
+            document.getElementById("actionBtn").innerText = "CONNECT WALLET";
+            document.getElementById("actionBtn").onclick = function() { initConnect(true); };
+            document.getElementById("actionBtn").disabled = false;
+            document.getElementById("status").innerText = "Disconnected.";
+            document.getElementById("potBalance").innerText = "0.00";
+            document.getElementById("leaderDisplay").innerText = "---";
+            document.getElementById("timer").innerText = "LOADING...";
+            
+            // Reload page to ensure clean slate (Optional but cleaner for Web3)
+            location.reload();
+        }
+
+        // --- GAME LOGIC ---
         async function updateStats() {
             if (!potContract) return;
             try {
-                // 1. Update Pot
+                // Update Pot
                 const balanceBN = await potContract.getPotBalance();
                 const balanceFormatted = parseFloat(ethers.utils.formatEther(balanceBN)).toFixed(0);
                 document.getElementById("potBalance").innerText = balanceFormatted;
 
-                // 2. Update Leader
+                // Update Leader
                 const leader = await potContract.currentLeader();
                 const leaderEl = document.getElementById("leaderDisplay");
                 
@@ -181,8 +258,7 @@
                     leaderEl.style.color = "#fff";
                     leaderEl.style.textShadow = "none";
                 }
-
-            } catch (err) { console.error("Error updating stats:", err); }
+            } catch (err) { console.error("Error stats:", err); }
         }
 
         async function updateTimer() {
@@ -195,6 +271,7 @@
                 if (diff <= 0) {
                     document.getElementById("timer").innerText = "ROUND ENDED";
                     document.getElementById("timer").style.color = "#555";
+                    // If round ended, text changes to prompt new round
                     if(document.getElementById("actionBtn").innerText.includes("BUY")) {
                         document.getElementById("actionBtn").innerText = "START NEW ROUND (100 $NODE)";
                     }
@@ -222,7 +299,6 @@
                 }
             } catch (err) {
                 console.error(err);
-                document.getElementById("status").innerText = "Error checking allowance";
             }
         }
 
