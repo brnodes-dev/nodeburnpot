@@ -78,13 +78,13 @@
 
         <div class="footer-links">
             <a href="https://etherscan.io/address/0x2080Fee444118AFCe30fCb749802C18c0a980dB7#tokentxns" target="_blank">🔥 VERIFY BURNS (Official Contract)</a>
-            <a href="https://etherscan.io/address/0xe536ac7A831a35A17bC579D61d4cDbFccb932f03" target="_blank">📄 VIEW GAME CONTRACT</a>
+            <a href="https://etherscan.io/address/0x72991519a66cD8DCea7ae645eA84AFed3f020148" target="_blank">📄 VIEW GAME CONTRACT</a>
         </div>
     </div>
 
     <script>
-        // --- NEW CONTRACT ADDRESS ---
-        const POT_ADDRESS = "0xe536ac7A831a35A17bC579D61d4cDbFccb932f03"; 
+        // --- NEW CONTRACT ADDRESS (UPDATED) ---
+        const POT_ADDRESS = "0x72991519a66cD8DCea7ae645eA84AFed3f020148"; 
         const TOKEN_ADDRESS = "0x2F714d7b9A035d4ce24af8d9b6091c07E37f43Fb"; 
         const TICKET_PRICE = ethers.utils.parseEther("100"); 
         
@@ -191,7 +191,6 @@
                 const netPot = parseFloat(ethers.utils.formatEther(balanceBN));
                 
                 // 2. Calculate Winner's Share
-                // In the new contract, the pot contains 90 parts. Winner gets 40 parts.
                 // Formula: (NetPot * 40) / 90
                 const winnerPrize = (netPot * 40) / 90;
 
