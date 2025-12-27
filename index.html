@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>$NODE Burn Pot</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+    <style>
+        body { font-family: 'Courier New', Courier, monospace; background-color: #0d0d0d; color: #00ff41; text-align: center; padding: 50px; }
+        h1 { font-size: 3rem; text-shadow: 0 0 10px #00ff41; margin-bottom: 10px; }
+        p { margin: 5px 0; }
+        .container { max-width: 600px; margin: 0 auto; border: 2px solid #00ff41; padding: 30px; box-shadow: 0 0 20px rgba(0, 255, 65, 0.2); background-color: #000; }
+        .btn { background-color: #00ff41; color: #000; font-size: 1.5rem; padding: 15px 30px; border: none; cursor: pointer; font-weight: bold; margin-top: 25px; width: 100%; transition: 0.3s; }
+        .btn:hover { background-color: #00cc33; box-shadow: 0 0 15px #00ff41; }
+        .btn:disabled { background-color: #333; color: #555; cursor: not-allowed; box-shadow: none; }
+        .stats { font-size: 1.3rem; margin: 20px 0; border-bottom: 1px solid #333; padding-bottom: 20px; }
+        .status-box { background: #1a1a1a; padding: 10px; margin-top: 20px; border-radius: 5px; font-size: 0.9rem; color: #888; }
+        #timer { font-size: 2.2rem; color: #ff0000; font-weight: bold; display: block; margin-top: 10px; }
+        .label { color: #888; font-size: 1rem; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>$NODE BURN POT</h1>
+        <p style="color: #666; font-size: 0.9rem; letter-spacing: 2px;">ETHEREUM MAINNET</p>
+        
+        <div class="stats">
+            <p><span class="label">CURRENT POT:</span> <br> <span id="potBalance" style="color: #fff; font-size: 1.5rem;">0.00</span> $NODE</p>
+            <br>
+            <p><span class="label">TIME REMAINING:</span> <span id="timer">LOADING...</span></p>
+        </div>
+
+        <button id="actionBtn" class="btn" onclick="connectWallet()">CONNECT WALLET</button>
+
+        <div class="status-box">
+            <p id="status">Waiting for connection...</p>
+            <a href="https://etherscan.io/address/0xb883a49177a29dB0921109887B3EF65f10f733Ac" target="_blank" style="color: #00ff41; text-decoration: none; display: block; margin-top: 5px;">[View Contract on Etherscan]</a>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const POT_ADDRESS = "0xb883a49177a29dB0921109887B3EF65f10f733Ac"; 
+        const TOKEN_ADDRESS = "0x2F714d7b9A035d4ce24af8d9b6091c07E37f43Fb"; 
+        const TICKET_PRICE = ethers.utils.parseEther("100"); // 100 NODE
+
+        const POT_ABI = [
+            "function buyTicket() external",
+            "function getPotBalance() view returns (uint256)",
+            "function timerEnd() view returns (uint256)",
+            "function currentLeader() view returns (address)"
+        ];
+        const TOKEN_ABI = [
+            "function approve(address spender, uint256 amount) public returns (bool)",
+            "function allowance(address owner, address spender) public view returns (uint256)",
+            "function balanceOf(address account) public view returns (uint256)"
+        ];
+
+        let provider, signer, potContract, tokenContract, userAddress;
+
+        async function connectWallet() {
+            // Generic check for injected wallet (Rabby, MetaMask, Frame, etc.)
+            if (!window.ethereum) {
+                return alert("No wallet found! Make sure the extension (Rabby/MetaMask) is active and you are running on a local server (http://localhost), not opening the file directly.");
+            }
+            
+            try {
+                // Force Web3 provider connection
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                
+                // Request account access
+                await provider.send("eth_requestAccounts", []);
+                
+                signer = provider.getSigner();
+                userAddress = await signer.getAddress();
+
+                potContract = new ethers.Contract(POT_ADDRESS, POT_ABI, signer);
+                tokenContract = new ethers.Contract(TOKEN_ADDRESS, TOKEN_ABI, signer);
+
+                document.getElementById("actionBtn").innerText = "CHECKING ALLOWANCE...";
+                document.getElementById("actionBtn").onclick = null; 
+                
+                document.getElementById("status").innerText = "Connected: " + userAddress.slice(0,6) + "..." + userAddress.slice(-4);
+                
+                // Start updates
+                updateStats();
+                checkAllowance();
+                setInterval(updateTimer, 1000);
+
+            } catch (err) {
+                console.error(err);
+                document.getElementById("status").innerText = "Error: " + (err.message || "Connection refused");
+            }
+        }
+
+        async function updateStats() {
+            try {
+                const balanceBN = await potContract.getPotBalance();
+                document.getElementById("potBalance").innerText = ethers.utils.formatEther(balanceBN);
+            } catch (err) { console.error("Error updating stats:", err); }
+        }
+
+        async function updateTimer() {
+            if (!potContract) return;
+            try {
+                const end = await potContract.timerEnd();
+                const now = Math.floor(Date.now() / 1000);
+                const diff = end - now;
+
+                if (diff <= 0) {
+                    document.getElementById("timer").innerText = "ROUND ENDED";
+                    document.getElementById("timer").style.color = "#555";
+                } else {
+                    const h = Math.floor(diff / 3600);
+                    const m = Math.floor((diff % 3600) / 60);
+                    const s = diff % 60;
+                    document.getElementById("timer").innerText = `${h}h ${m}m ${s}s`;
+                    document.getElementById("timer").style.color = "#ff0000";
+                }
+            } catch (err) { console.error("Timer error:", err); }
+        }
+
+        async function checkAllowance() {
+            try {
+                const allowance = await tokenContract.allowance(userAddress, POT_ADDRESS);
+                // Check if allowance covers at least 1 ticket
+                if (allowance.gte(TICKET_PRICE)) {
+                    setButtonState("BUY TICKET (100 $NODE)", buyTicket);
+                } else {
+                    setButtonState("APPROVE $NODE", approveToken);
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById("status").innerText = "Error checking allowance";
+            }
+        }
+
+        function setButtonState(text, action) {
+            const btn = document.getElementById("actionBtn");
+            btn.innerText = text;
+            btn.onclick = action;
+            btn.disabled = false;
+        }
+
+        async function approveToken() {
+            try {
+                document.getElementById("status").innerText = "Waiting for wallet confirmation...";
+                // Approve max to avoid repeated requests
+                const tx = await tokenContract.approve(POT_ADDRESS, ethers.constants.MaxUint256);
+                document.getElementById("status").innerText = "Tx Sent... Waiting for mining.";
+                await tx.wait();
+                document.getElementById("status").innerText = "Approved! Updating button...";
+                checkAllowance(); 
+            } catch (err) {
+                document.getElementById("status").innerText = "Approval Failed or Cancelled";
+                console.error(err);
+            }
+        }
+
+        async function buyTicket() {
+            try {
+                document.getElementById("status").innerText = "Confirm purchase in wallet...";
+                const tx = await potContract.buyTicket();
+                document.getElementById("status").innerText = "Tx Sent! Waiting for confirmation...";
+                await tx.wait();
+                document.getElementById("status").innerText = "SUCCESS! You are the new leader!";
+                updateStats();
+            } catch (err) {
+                // Parse readable error message
+                let msg = err.reason || err.message;
+                if(msg.includes("Transfer failed")) msg = "Insufficient balance or allowance!";
+                document.getElementById("status").innerText = "Error: " + msg;
+                console.error(err);
+            }
+        }
+    </script>
+</body>
+</html>
