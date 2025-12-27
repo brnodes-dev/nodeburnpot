@@ -14,7 +14,10 @@
         .label { color: #888; font-size: 0.9rem; text-transform: uppercase; }
         .container { max-width: 550px; margin: 0 auto; border: 2px solid #00ff41; padding: 25px; box-shadow: 0 0 20px rgba(0, 255, 65, 0.1); background-color: #050505; position: relative; }
         .stats { margin: 20px 0; padding: 15px; background: #0a0a0a; border: 1px solid #333; border-radius: 4px; }
-        .big-number { color: #fff; font-size: 1.8rem; font-weight: bold; text-shadow: 0 0 5px rgba(255,255,255,0.5); }
+        
+        /* Highlight for the prize number */
+        .big-number { color: #00ff41; font-size: 2.2rem; font-weight: bold; text-shadow: 0 0 15px rgba(0, 255, 65, 0.4); }
+        
         .leader-text { font-size: 1.1rem; font-weight: bold; word-break: break-all; }
         #timer { font-size: 2rem; color: #ff0000; font-weight: bold; display: block; margin-top: 5px; text-shadow: 0 0 5px rgba(255, 0, 0, 0.4); }
         .distribution { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: left; margin-bottom: 25px; font-size: 0.85rem; }
@@ -45,11 +48,11 @@
         <p class="subtitle">ETHEREUM MAINNET</p>
         
         <div class="stats">
-            <p><span class="label">Current Pot</span> <br> <span id="potBalance" class="big-number">...</span> $NODE</p>
+            <p><span class="label">WINNER'S PRIZE (40%)</span> <br> <span id="potBalance" class="big-number">LOADING...</span> $NODE</p>
             <br>
-            <p><span class="label">Current Leader (Winner)</span> <br> <span id="leaderDisplay" class="leader-text" style="color: #555;">...</span></p>
+            <p><span class="label">Current Leader (Winner)</span> <br> <span id="leaderDisplay" class="leader-text" style="color: #555;">---</span></p>
             <br>
-            <p><span class="label">Time Remaining</span> <span id="timer">...</span></p>
+            <p><span class="label">Time Remaining</span> <span id="timer">LOADING...</span></p>
         </div>
 
         <button id="actionBtn" class="btn" onclick="initConnect(true)">CONNECT WALLET</button>
@@ -60,14 +63,14 @@
             <ul>
                 <li>Buy a ticket (100 $NODE) to become the <strong>LEADER</strong>.</li>
                 <li>Every purchase adds <strong>15 minutes</strong> to the clock.</li>
-                <li>If the timer hits <strong>ZERO</strong>, the Leader takes 40% of the Pot!</li>
-                <li>40% is <strong>BURNED</strong> forever to reduce supply.</li>
+                <li>If the timer hits <strong>ZERO</strong>, the Leader takes the <strong>PRIZE (40%)</strong>!</li>
+                <li>40% is <strong>BURNED</strong> forever.</li>
             </ul>
         </div>
 
         <h2>POT DISTRIBUTION</h2>
         <div class="distribution">
-            <div class="dist-item"><strong>40%</strong> WINNER <br> <span style="color:#666">(Last Buyer)</span></div>
+            <div class="dist-item"><strong>40%</strong> WINNER <br> <span style="color:#00ff41; font-weight:bold;">(Displayed Above)</span></div>
             <div class="dist-item highlight-burn"><strong>40%</strong> BURN <br> <span style="color:#ff5555">(Deflation)</span></div>
             <div class="dist-item"><strong>10%</strong> NEXT POT <br> <span style="color:#666">(Seed)</span></div>
             <div class="dist-item"><strong>10%</strong> DEV <br> <span style="color:#666">(Maintenance)</span></div>
@@ -75,17 +78,18 @@
 
         <div class="footer-links">
             <a href="https://etherscan.io/address/0x2080Fee444118AFCe30fCb749802C18c0a980dB7#tokentxns" target="_blank">🔥 VERIFY BURNS (Official Contract)</a>
-            <a href="https://etherscan.io/address/0xb883a49177a29dB0921109887B3EF65f10f733Ac" target="_blank">📄 VIEW GAME CONTRACT</a>
+            <a href="https://etherscan.io/address/0xe536ac7A831a35A17bC579D61d4cDbFccb932f03" target="_blank">📄 VIEW GAME CONTRACT</a>
         </div>
     </div>
 
     <script>
-        const POT_ADDRESS = "0xb883a49177a29dB0921109887B3EF65f10f733Ac"; 
+        // --- NEW CONTRACT ADDRESS ---
+        const POT_ADDRESS = "0xe536ac7A831a35A17bC579D61d4cDbFccb932f03"; 
         const TOKEN_ADDRESS = "0x2F714d7b9A035d4ce24af8d9b6091c07E37f43Fb"; 
         const TICKET_PRICE = ethers.utils.parseEther("100"); 
         
-        // --- CHANGED TO CLOUDFLARE (FASTEST PUBLIC RPC) ---
-        const READ_ONLY_RPC = "https://cloudflare-eth.com";
+        // Using stable public RPC
+        const READ_ONLY_RPC = "https://ethereum-rpc.publicnode.com";
 
         const POT_ABI = [
             "function buyTicket() external",
@@ -103,12 +107,10 @@
         let readOnlyContract;
         let intervals = []; 
 
-        // --- INIT LOGIC (Runs immediately) ---
-        // 1. Start fetching data right now (don't wait for page load)
+        // Start Fetching immediately
         initReadOnly();
 
         window.onload = function() {
-            // 2. Check login status
             if(localStorage.getItem('isConnected') === 'true') {
                 initConnect(false);
             }
@@ -116,19 +118,13 @@
 
         async function initReadOnly() {
             try {
-                // Connect to Cloudflare
                 const roProvider = new ethers.providers.JsonRpcProvider(READ_ONLY_RPC);
                 readOnlyContract = new ethers.Contract(POT_ADDRESS, POT_ABI, roProvider);
-                
-                // Fetch first batch
                 await updateData(readOnlyContract);
                 
-                // Loop
                 setInterval(() => updateData(readOnlyContract), 5000);
                 setInterval(() => updateTimerInternal(readOnlyContract), 1000);
-            } catch (err) {
-                console.error("Read-only init failed:", err);
-            }
+            } catch (err) { console.error("Read-only init failed:", err); }
         }
 
         async function initConnect(requireSignature) {
@@ -152,8 +148,6 @@
                 }
 
                 localStorage.setItem('isConnected', 'true');
-
-                // Switch to Write-Capable Contracts
                 potContract = new ethers.Contract(POT_ADDRESS, POT_ABI, signer);
                 tokenContract = new ethers.Contract(TOKEN_ADDRESS, TOKEN_ABI, signer);
 
@@ -162,7 +156,6 @@
                 document.getElementById("status").innerText = "Connected: " + userAddress.slice(0,6) + "...";
                 document.getElementById("disconnectBtn").style.display = "block";
 
-                // Refresh data with signer context
                 await updateData(potContract);
                 checkAllowance();
                 
@@ -180,28 +173,32 @@
         function disconnectWallet() {
             localStorage.removeItem('isConnected');
             provider = null; signer = null; userAddress = null; potContract = null; tokenContract = null;
-            
             intervals.forEach(clearInterval);
-            
             document.getElementById("disconnectBtn").style.display = "none";
             document.getElementById("actionBtn").innerText = "CONNECT WALLET";
             document.getElementById("actionBtn").onclick = function() { initConnect(true); };
             document.getElementById("actionBtn").disabled = false;
             document.getElementById("status").innerText = "Disconnected.";
             document.getElementById("leaderDisplay").innerText = "---";
-            
-            // Re-init read only
             initReadOnly();
         }
 
         async function updateData(contractToUse) {
             if (!contractToUse) return;
             try {
-                // Pot Balance
+                // 1. Get Pot Balance (This is now the 90% Net Pot)
                 const balanceBN = await contractToUse.getPotBalance();
-                document.getElementById("potBalance").innerText = parseFloat(ethers.utils.formatEther(balanceBN)).toFixed(0);
+                const netPot = parseFloat(ethers.utils.formatEther(balanceBN));
+                
+                // 2. Calculate Winner's Share
+                // In the new contract, the pot contains 90 parts. Winner gets 40 parts.
+                // Formula: (NetPot * 40) / 90
+                const winnerPrize = (netPot * 40) / 90;
 
-                // Leader
+                // 3. Display Result
+                document.getElementById("potBalance").innerText = winnerPrize.toFixed(0);
+
+                // Update Leader
                 const leader = await contractToUse.currentLeader();
                 const leaderEl = document.getElementById("leaderDisplay");
                 
