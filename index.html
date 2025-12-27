@@ -21,6 +21,8 @@
         /* Stats Section */
         .stats { margin: 20px 0; padding: 15px; background: #0a0a0a; border: 1px solid #333; border-radius: 4px; }
         .big-number { color: #fff; font-size: 1.8rem; font-weight: bold; text-shadow: 0 0 5px rgba(255,255,255,0.5); }
+        .leader-text { font-size: 1.1rem; font-weight: bold; word-break: break-all; }
+        
         #timer { font-size: 2rem; color: #ff0000; font-weight: bold; display: block; margin-top: 5px; text-shadow: 0 0 5px rgba(255, 0, 0, 0.4); }
         
         /* Distribution Grid */
@@ -52,6 +54,10 @@
         <div class="stats">
             <p><span class="label">Current Pot</span> <br> <span id="potBalance" class="big-number">0.00</span> $NODE</p>
             <br>
+            
+            <p><span class="label">Current Leader (Winner)</span> <br> <span id="leaderDisplay" class="leader-text" style="color: #555;">---</span></p>
+            <br>
+
             <p><span class="label">Time Remaining</span> <span id="timer">LOADING...</span></p>
         </div>
 
@@ -124,9 +130,12 @@
                 // Show condensed address
                 document.getElementById("status").innerText = "Connected: " + userAddress.slice(0,6) + "..." + userAddress.slice(-4);
                 
-                updateStats();
+                // Initial updates
+                await updateStats();
                 checkAllowance();
                 setInterval(updateTimer, 1000);
+                // Also update leader/pot every 5 seconds to keep it fresh
+                setInterval(updateStats, 5000);
 
             } catch (err) {
                 console.error(err);
@@ -135,11 +144,37 @@
         }
 
         async function updateStats() {
+            if (!potContract) return;
             try {
+                // 1. Update Pot Balance
                 const balanceBN = await potContract.getPotBalance();
-                // Format with 0 decimals for cleaner look
                 const balanceFormatted = parseFloat(ethers.utils.formatEther(balanceBN)).toFixed(0);
                 document.getElementById("potBalance").innerText = balanceFormatted;
+
+                // 2. Update Leader Display (NEW LOGIC)
+                const leader = await potContract.currentLeader();
+                const leaderEl = document.getElementById("leaderDisplay");
+                
+                // Check for empty address
+                if (leader === "0x0000000000000000000000000000000000000000") {
+                    leaderEl.innerText = "NO ONE YET";
+                    leaderEl.style.color = "#555";
+                    leaderEl.style.textShadow = "none";
+                } 
+                // Check if it's ME
+                else if (userAddress && leader.toLowerCase() === userAddress.toLowerCase()) {
+                    leaderEl.innerText = "YOU (KING)";
+                    leaderEl.style.color = "#00ff41";
+                    leaderEl.style.textShadow = "0 0 10px #00ff41";
+                } 
+                // Check if it's someone else
+                else {
+                    // Format: 0x1234...5678
+                    leaderEl.innerText = leader.slice(0,6) + "..." + leader.slice(-4);
+                    leaderEl.style.color = "#fff";
+                    leaderEl.style.textShadow = "none";
+                }
+
             } catch (err) { console.error("Error updating stats:", err); }
         }
 
@@ -153,7 +188,6 @@
                 if (diff <= 0) {
                     document.getElementById("timer").innerText = "ROUND ENDED";
                     document.getElementById("timer").style.color = "#555";
-                    // If round ended, text changes to prompt new round
                     if(document.getElementById("actionBtn").innerText.includes("BUY")) {
                         document.getElementById("actionBtn").innerText = "START NEW ROUND (100 $NODE)";
                     }
@@ -161,7 +195,6 @@
                     const h = Math.floor(diff / 3600);
                     const m = Math.floor((diff % 3600) / 60);
                     const s = diff % 60;
-                    // Add leading zeros
                     const hDisplay = h < 10 ? "0" + h : h;
                     const mDisplay = m < 10 ? "0" + m : m;
                     const sDisplay = s < 10 ? "0" + s : s;
@@ -213,8 +246,7 @@
                 document.getElementById("status").innerText = "Transaction sent! Waiting confirmation...";
                 await tx.wait();
                 document.getElementById("status").innerText = "TICKET BOUGHT! You are the leader!";
-                updateStats();
-                // Force timer update immediately
+                updateStats(); // Force immediate update
                 updateTimer();
             } catch (err) {
                 let msg = err.reason || err.message;
