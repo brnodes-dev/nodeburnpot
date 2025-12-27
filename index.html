@@ -10,7 +10,7 @@
         
         /* Typography */
         h1 { font-size: 2.5rem; text-shadow: 0 0 10px #00ff41; margin-bottom: 5px; letter-spacing: -2px; }
-        h2 { font-size: 1.2rem; border-bottom: 1px dashed #00ff41; padding-bottom: 10px; margin-bottom: 20px; }
+        h2 { font-size: 1.2rem; border-bottom: 1px dashed #00ff41; padding-bottom: 10px; margin-bottom: 20px; margin-top: 30px; }
         p { margin: 5px 0; }
         .subtitle { color: #666; font-size: 0.8rem; letter-spacing: 2px; margin-bottom: 20px; }
         .label { color: #888; font-size: 0.9rem; text-transform: uppercase; }
@@ -31,6 +31,12 @@
         .dist-item strong { color: #fff; }
         .highlight-burn { border-left: 2px solid #ff0000; color: #ff9999; }
         
+        /* Rules Section (NEW) */
+        .rules-box { text-align: left; background: #111; padding: 15px; border: 1px solid #333; margin-top: 25px; font-size: 0.9rem; color: #ccc; }
+        .rules-box ul { padding-left: 20px; margin: 0; }
+        .rules-box li { margin-bottom: 8px; }
+        .rules-box strong { color: #00ff41; }
+
         /* Buttons */
         .btn { background-color: #00ff41; color: #000; font-size: 1.4rem; padding: 15px; border: none; cursor: pointer; font-weight: bold; width: 100%; text-transform: uppercase; transition: 0.2s; }
         .btn:hover { background-color: #00cc33; box-shadow: 0 0 15px #00ff41; transform: scale(1.02); }
@@ -61,6 +67,19 @@
             <p><span class="label">Time Remaining</span> <span id="timer">LOADING...</span></p>
         </div>
 
+        <button id="actionBtn" class="btn" onclick="connectWallet()">CONNECT WALLET</button>
+        <p id="status">Waiting for connection...</p>
+
+        <div class="rules-box">
+            <h3 style="margin-top: 0; color: #fff; border-bottom: 1px solid #333; padding-bottom: 5px;">⚡ HOW IT WORKS</h3>
+            <ul>
+                <li>Buy a ticket (100 $NODE) to become the <strong>LEADER</strong>.</li>
+                <li>Every purchase adds <strong>15 minutes</strong> to the clock.</li>
+                <li>If the timer hits <strong>ZERO</strong>, the Leader takes 40% of the Pot!</li>
+                <li>40% is <strong>BURNED</strong> forever to reduce supply.</li>
+            </ul>
+        </div>
+
         <h2>POT DISTRIBUTION</h2>
         <div class="distribution">
             <div class="dist-item">
@@ -76,9 +95,6 @@
                 <strong>10%</strong> DEV <br> <span style="color:#666">(Maintenance)</span>
             </div>
         </div>
-
-        <button id="actionBtn" class="btn" onclick="connectWallet()">CONNECT WALLET</button>
-        <p id="status">Waiting for connection...</p>
 
         <div class="footer-links">
             <a href="https://etherscan.io/address/0x2080Fee444118AFCe30fCb749802C18c0a980dB7#tokentxns" target="_blank">
@@ -127,14 +143,11 @@
                 document.getElementById("actionBtn").innerText = "CHECKING...";
                 document.getElementById("actionBtn").onclick = null; 
                 
-                // Show condensed address
                 document.getElementById("status").innerText = "Connected: " + userAddress.slice(0,6) + "..." + userAddress.slice(-4);
                 
-                // Initial updates
                 await updateStats();
                 checkAllowance();
                 setInterval(updateTimer, 1000);
-                // Also update leader/pot every 5 seconds to keep it fresh
                 setInterval(updateStats, 5000);
 
             } catch (err) {
@@ -146,30 +159,24 @@
         async function updateStats() {
             if (!potContract) return;
             try {
-                // 1. Update Pot Balance
+                // 1. Update Pot
                 const balanceBN = await potContract.getPotBalance();
                 const balanceFormatted = parseFloat(ethers.utils.formatEther(balanceBN)).toFixed(0);
                 document.getElementById("potBalance").innerText = balanceFormatted;
 
-                // 2. Update Leader Display (NEW LOGIC)
+                // 2. Update Leader
                 const leader = await potContract.currentLeader();
                 const leaderEl = document.getElementById("leaderDisplay");
                 
-                // Check for empty address
                 if (leader === "0x0000000000000000000000000000000000000000") {
                     leaderEl.innerText = "NO ONE YET";
                     leaderEl.style.color = "#555";
                     leaderEl.style.textShadow = "none";
-                } 
-                // Check if it's ME
-                else if (userAddress && leader.toLowerCase() === userAddress.toLowerCase()) {
+                } else if (userAddress && leader.toLowerCase() === userAddress.toLowerCase()) {
                     leaderEl.innerText = "YOU (KING)";
                     leaderEl.style.color = "#00ff41";
                     leaderEl.style.textShadow = "0 0 10px #00ff41";
-                } 
-                // Check if it's someone else
-                else {
-                    // Format: 0x1234...5678
+                } else {
                     leaderEl.innerText = leader.slice(0,6) + "..." + leader.slice(-4);
                     leaderEl.style.color = "#fff";
                     leaderEl.style.textShadow = "none";
@@ -246,7 +253,7 @@
                 document.getElementById("status").innerText = "Transaction sent! Waiting confirmation...";
                 await tx.wait();
                 document.getElementById("status").innerText = "TICKET BOUGHT! You are the leader!";
-                updateStats(); // Force immediate update
+                updateStats(); 
                 updateTimer();
             } catch (err) {
                 let msg = err.reason || err.message;
