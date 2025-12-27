@@ -83,16 +83,14 @@
         </div>
 
         <div class="footer-links">
-            <a href="https://bscscan.com/address/0x000000000000000000000000000000000000dEaD#tokentxns" target="_blank">🔥 VERIFY BURNS (Official dEaD Address)</a>
+            <a href="https://bscscan.com/token/0x2f714d7b9a035d4ce24af8d9b6091c07e37f43fb?a=0x000000000000000000000000000000000000dead" target="_blank">🔥 VERIFY BURNS (Official dEaD Address)</a>
             <a href="#" id="contractLink" target="_blank">📄 VIEW GAME CONTRACT</a>
         </div>
     </div>
 
     <script>
-        // --- UPDATED CONTRACT ADDRESS ---
+        // --- CONTRACT SETTINGS ---
         const POT_ADDRESS = "0xBAAc56797e6fE0d2E044503AC04Ddc41AB6b849B"; 
-        
-        // --- BSC SETTINGS ---
         const TOKEN_ADDRESS = "0x2F714d7b9A035d4ce24af8d9b6091c07E37f43Fb"; // $NODE on BSC
         const TICKET_PRICE = ethers.utils.parseEther("100"); 
         
@@ -115,7 +113,7 @@
         let readOnlyContract;
         let intervals = []; 
 
-        // Update footer link with new address
+        // Update footer link with address
         document.getElementById("contractLink").href = "https://bscscan.com/address/" + POT_ADDRESS;
 
         // Start App
